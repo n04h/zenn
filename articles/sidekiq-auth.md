@@ -1,11 +1,12 @@
 ---
-title: "Sidekiqの管理画面を自前で用意した認証機能でアクセス制限する"
+title: "Sidekiqの管理画面をアクセス制限する方法3選"
 emoji: "🧑‍💻"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [sidekiq, rails, ruby]
 published: false
 ---
 
+BASIC認証とDeviceを使った方法はよく見かけるのですが、
 自前で用意した認証機能でSidekiqの管理画面へのアクセスを制限する方法についての情報が見当たらなかったので備忘録として残しておきます。
 
 Railsにて非同期処理をする際にSidekiqを使う場合に、
@@ -22,7 +23,7 @@ end
 ただ、本番環境でも同様に確認したいこの画面に第三者がアクセスできてしまうのは困るので、
 認証をつけるのがベターなのかなと思います。
 
-## BASIC認証を使った方法
+## 1. BASIC認証を使った方法
 
 こちらの方法を使うなら環境変数などを使ってください。
 
@@ -36,7 +37,7 @@ Rails.application.routes.draw do
 end
 ```
 
-## Deviceを使った方法
+## 2. Deviceを使った方法
 
 `authenticated`を使うことで簡単に実装できます。
 
@@ -46,7 +47,7 @@ authenticate :user do #authenticate
 end
 ```
 
-## 自前の認証機能(セッションを使った方法)
+## 3. 自前の認証機能(セッションを使った方法)
 
 [constraints](https://guides.rubyonrails.org/routing.html#advanced-constraints)を使うことでいい感じに実装できます。
 
