@@ -3,7 +3,7 @@ title: "Sidekiqの管理画面をアクセス制限する方法3選"
 emoji: "🧑‍💻"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [sidekiq, rails, ruby]
-published: false
+published: true
 ---
 
 BASIC認証とDeviceを使った方法はよく見かけるのですが、
