@@ -76,4 +76,95 @@ Twilioの仕組みとして、1回目のコールで応答されなかった場�
 
 ということで対応方法としては自前で応答されなかった場合にリコールする機能を作ってみました。
 
-# aaa
+# 実装
+
+今回実装したコードは以下リポジトリで公開していますので、コードだけ見たい方はこちらからどうぞ。
+<https://github.com/n04h/rails-twilio-recall-example>
+
+## 全体のフロー
+
+![全体のフロー](https://www.plantuml.com/plantuml/png/nPBFhX8n5CRtVOgpr8Mv2tSaOsxYtRZIUAzhKuPPJ1p-PAOJjtGQ_mWc42CW0GMZk82068aXQfo7ENJ0jx2TegCIKHRcpg9jfZtVz_lQSnmmwhEmw96AcbtRhT0IWvlKzGAW0VXwGGgKqJmD753VoNQjTmlvNwhExhgUMzORB5qHQhEo3xS2nzS_GpKJObc0qNiKdr5CmB88IItWqXNZbOCRrq_FuCWetAOLzyYcdXTanynE3b2yqIhH1pto9VBP3rqv6snUFYQ-mqA_bCly4d5F3jzXz6GJFqNUpRnLafrZ5wugtzDh9nVL-LNyN4wVgHACweGO0bsc8-sIVDTHXGe3-VqqjOpxwwcoxI0VoE52DX_g-9dOtlnvQj_v0osA9Wg1qLlaBOoKtM0BZdooNZIHZv0tK3n84MF591_LldPVcp2_ausHrv6_EdV4Hbj-wMmHpJCIGZq6bsNlnUhJQBMiwVSMuyo2pmmn0VWVz-IK2Xb1qXyd7wlx2GvjLe2_jol0lpLibVyCfe5RSoMJz1P9Usu2QR63-zZSmh4QmwBt3G00)
+
+## 環境の準備
+
+Rails + MySQLのDocker環境を用意します。
+このあたりはほか記事で丁寧にまとめてくださっているかと思いますので割愛します。
+
+## SDKのインストール
+
+SDKのGitHubのリポジトリは以下になります。
+<https://github.com/twilio/twilio-ruby>
+
+こちらをGemfileに追加して、`bundle install`を実行します。
+
+```ruby:Gemfile
+gem 'twilio-ruby'
+```
+
+## コールした履歴の管理を行うモデルの作成
+
+まずスキーマの定義から。今回Railsが用意しているマイグレーションは使わず、`ridgepole`を使います。
+
+```ruby:Schemafile
+create_table "twilio_call_resources", force: :cascade do |t|
+  t.string "call_sid", null: false
+  t.json "call_options_json", null: false
+  t.integer "called_count", default: 1, null: false
+  t.datetime "created_at"
+  t.datetime "updated_at"
+  t.index ["call_sid"], unique: true
+end
+```
+
+ドライランして問題ないかチェック。
+
+```shell
+bundle exec ridgepole --config ./config/database.yml --file ./db/Schemafile --apply --dry-run
+```
+
+## トリガーとなるAPIの作成
+
+任意のイベント時にユーザーへコールするというコードのサンプルとして、
+トリガーとなるAPIを用意していきます。
+
+ルーティングは`POST /twilio_api/calls`としましょう。
+
+```ruby:config/routes.rb
+Rails.application.routes.draw do
+  namespace :twilio_api do
+    resources :calls, only: :create
+  end
+end
+```
+
+取り敢えずレスポンスを返すだけにします。
+
+```ruby:app/controllers/twilio_api/calls_controller.rb
+module TwilioApi
+  class CallsController < ApplicationController
+    def create
+      call = client.calls.create(**call_options)
+      head :no_content
+    end
+
+    private
+
+    def client
+      Twilio::REST::Client.new(ENV["TWILIO_ACCOUNT_SID"], ENV["TWILIO_AUTH_TOKEN"])
+    end
+
+    def call_options
+      {
+        twiml: '<Response><Say>Hello world!</Say></Response>',
+        from: '+8105012345678',
+        to: '+8109012345678',
+        timeout: 30 # デフォルトは60秒なので2回コールされてしまうのを防ぐ
+      }
+    end
+  end
+end
+```
+
+```ruby
+```
+
