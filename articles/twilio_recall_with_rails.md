@@ -86,7 +86,7 @@ Twilioの仕組みとして、1回目のコールで応答されなかった場�
 
 ## 全体のフロー
 
-![全体のフロー](https://storage.googleapis.com/zenn-user-upload/b570a341fa19-20211214.png)
+![全体のフロー](https://storage.googleapis.com/zenn-user-upload/28f9cf26f309-20211214.png)
 
 ## 環境の準備
 
