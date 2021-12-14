@@ -1,6 +1,6 @@
 ---
 title: "Railsで相手が応答しなかった場合にリコールする機能を作ってみた"
-emoji: "🐡"
+emoji: "📱"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: [twilio, rails, ruby]
 published: false
@@ -86,12 +86,12 @@ Twilioの仕組みとして、1回目のコールで応答されなかった場�
 
 ## 全体のフロー
 
-![全体のフロー](https://www.plantuml.com/plantuml/png/nPBFhX8n5CRtVOgpr8Mv2tSaOsxYtRZIUAzhKuPPJ1p-PAOJjtGQ_mWc42CW0GMZk82068aXQfo7ENJ0jx2TegCIKHRcpg9jfZtVz_lQSnmmwhEmw96AcbtRhT0IWvlKzGAW0VXwGGgKqJmD753VoNQjTmlvNwhExhgUMzORB5qHQhEo3xS2nzS_GpKJObc0qNiKdr5CmB88IItWqXNZbOCRrq_FuCWetAOLzyYcdXTanynE3b2yqIhH1pto9VBP3rqv6snUFYQ-mqA_bCly4d5F3jzXz6GJFqNUpRnLafrZ5wugtzDh9nVL-LNyN4wVgHACweGO0bsc8-sIVDTHXGe3-VqqjOpxwwcoxI0VoE52DX_g-9dOtlnvQj_v0osA9Wg1qLlaBOoKtM0BZdooNZIHZv0tK3n84MF591_LldPVcp2_ausHrv6_EdV4Hbj-wMmHpJCIGZq6bsNlnUhJQBMiwVSMuyo2pmmn0VWVz-IK2Xb1qXyd7wlx2GvjLe2_jol0lpLibVyCfe5RSoMJz1P9Usu2QR63-zZSmh4QmwBt3G00)
+![全体のフロー](https://storage.googleapis.com/zenn-user-upload/b570a341fa19-20211214.png)
 
 ## 環境の準備
 
 Rails + MySQLのDocker環境を用意します。
-このあたりはほか記事で丁寧にまとめてくださっているかと思いますので割愛します。
+このあたりはほか記事で丁寧にまとめてくださっている方がたくさんいるかと思いますので割愛します。
 
 ## SDKのインストール
 
@@ -268,5 +268,5 @@ end
 
 # さいごに
 
-Twilio + Railsはそこそこ知見があるのですがアウトプットが全然できていないため、余裕のある時にちょこちょこまとめていこうかと思っています。
+Twilio + Railsはそこそこ知見がたまってきているのですがアウトプットが全然できていないため、これを機会に余裕のある時にちょこちょこまとめていこうかと思っています。
 Twitterなどでなにか実装したい要件で悩んでいましたら是非お声がけください。
