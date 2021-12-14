@@ -14,6 +14,9 @@ published: false
 Twilioのアカウント作成・電話番号の購入の説明はしていません。
 使用可能な電話番号が用意できている前提で説明させていただきます。
 
+また、実際に実務で使っているコードではなく今回の記事用に再実装したコードになるため、
+こちらで紹介するコードが実際に動作できるかは確認できていませんのでご了承ください。
+
 # 背景
 
 実務で以下の要件の対応をすることがありました。
@@ -103,7 +106,45 @@ gem 'twilio-ruby'
 
 ## コールした履歴の管理を行うモデルの作成
 
-まずスキーマの定義から。今回Railsが用意しているマイグレーションは使わず、`ridgepole`を使います。
+モデルには以下の機能を用意しておきます。
+
+- コールの実行
+- リコールの実行可否確認
+- リコールの実行
+
+```ruby:app/models/twilio_call_resource.rb
+class TwilioCallResource < ApplicationRecord
+  class << self
+    def call!(client:, **call_options)
+      resource = client.calls.create(**call_options)
+      create!(
+        call_sid: resource.sid,
+        call_options_json: call_options.to_json
+      )
+    end
+  end
+
+  def call_options
+    JSON.parse(call_options_json).symbolize_keys
+  end
+
+  def can_recall?
+    called_count < 3
+  end
+
+  def recall!(client:)
+    raise "リコールできません" if can_recall?
+
+    resource = client.calls.create(**call_options)
+    update!(
+      call_sid: resource.sid,
+      called_count: called_count + 1
+    )
+  end
+end
+```
+
+スキーマの定義は今回Railsが用意しているマイグレーションは使わず、`ridgepole`を使います。
 
 ```ruby:Schemafile
 create_table "twilio_call_resources", force: :cascade do |t|
@@ -122,10 +163,15 @@ end
 bundle exec ridgepole --config ./config/database.yml --file ./db/Schemafile --apply --dry-run
 ```
 
+問題なさそうなのでこれでマイグレーション実行。
+
+```shell
+bundle exec ridgepole --config ./config/database.yml --file ./db/Schemafile --apply
+```
+
 ## トリガーとなるAPIの作成
 
-任意のイベント時にユーザーへコールするというコードのサンプルとして、
-トリガーとなるAPIを用意していきます。
+任意のイベント時にユーザーへコールするというコードのサンプルとして、トリガーとなるAPIを用意していきます。
 
 ルーティングは`POST /twilio_api/calls`としましょう。
 
@@ -137,14 +183,68 @@ Rails.application.routes.draw do
 end
 ```
 
-取り敢えずレスポンスを返すだけにします。
+コールの実行・コール履歴を作成するようにします。
 
 ```ruby:app/controllers/twilio_api/calls_controller.rb
 module TwilioApi
   class CallsController < ApplicationController
     def create
-      call = client.calls.create(**call_options)
-      head :no_content
+      TwilioCallResource.call!(client: client, **call_options)
+    end
+
+    private
+
+    def client
+      Twilio::REST::Client.new(ENV['TWILIO_ACCOUNT_SID'], ENV['TWILIO_AUTH_TOKEN'])
+    end
+
+    def call_options
+      {
+        twiml: '<Response><Say>Hello world!</Say></Response>',
+        status_callback: status_callback_url,
+        status_callback_event: ['completed'], # Twilio側で発信の処理が終了時にコールバックされるようにする
+        status_callback_method: 'POST',
+        from: '+8105012345678',
+        to: '+8109012345678',
+        timeout: 30 # デフォルトは60秒なので2回コールされてしまうのを防ぐ
+      }
+    end
+
+    def status_callback_url
+      "#{ENV["HOST_URL"]}/twilio_api/callback"
+    end
+  end
+end
+```
+
+## コールバック用APIの作成
+
+コールのステータスをもとにリコールするかを処理するAPI、`POST /twilio_api/callback`を用意します。
+
+```ruby:config/routes.rb
+Rails.application.routes.draw do
+  namespace :twilio_api do
+    resources :calls, only: :create
+    resource :callback, only: :create
+  end
+end
+```
+
+以下の場合はユーザー側で応答されないケースになるので、全て指定してしまいます。
+
+- `busy`
+- `failed`
+- `no-answer`
+
+```ruby:app/controllers/twilio_api/callbacks_controller.rb
+module TwilioApi
+  class CallbacksController < ApplicationController
+    def create
+      if need_recall?
+        call_resource.recall!(client: client)
+      else
+        call_resource.destroy!
+      end
     end
 
     private
@@ -153,18 +253,20 @@ module TwilioApi
       Twilio::REST::Client.new(ENV["TWILIO_ACCOUNT_SID"], ENV["TWILIO_AUTH_TOKEN"])
     end
 
-    def call_options
-      {
-        twiml: '<Response><Say>Hello world!</Say></Response>',
-        from: '+8105012345678',
-        to: '+8109012345678',
-        timeout: 30 # デフォルトは60秒なので2回コールされてしまうのを防ぐ
-      }
+    def call_resource
+      TwilioCallResource.find_by!(call_sid: params[:CallSid])
+    end
+
+    def need_recall?
+      %w[busy failed no-answer].include?(params[:CallStatus])
     end
   end
 end
 ```
 
-```ruby
-```
+以上で実装できるかと思います。コード自体はシンプルですね。
 
+# さいごに
+
+Twilio + Railsはそこそこ知見があるのですがアウトプットが全然できていないため、余裕のある時にちょこちょこまとめていこうかと思っています。
+Twitterなどでなにか実装したい要件で悩んでいましたら是非お声がけください。
